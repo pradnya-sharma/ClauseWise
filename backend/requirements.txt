@@ -1,0 +1,9 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.19
+pydantic==2.10.3
+pydantic-settings==2.7.0
+PyMuPDF==1.25.3
+google-genai==1.9.0
+thefuzz==0.22.1
+python-Levenshtein==0.26.1
