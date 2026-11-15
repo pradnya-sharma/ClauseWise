@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import re
 import time
 import uuid
 
@@ -10,6 +12,10 @@ from app.config import get_settings
 from app.models.responses import AnalysisResponse
 from app.services.prompts import ANALYSIS_SYSTEM_PROMPT, ANALYSIS_USER_PROMPT
 from app.services.verification import verify_all_findings
+
+logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 2
 
 
 def _call_gemini(client: genai.Client, model: str, prompt: str) -> str:
@@ -26,6 +32,13 @@ def _call_gemini(client: genai.Client, model: str, prompt: str) -> str:
     return response.text
 
 
+def _parse_json(raw_text: str) -> dict:
+    if not raw_text or not raw_text.strip():
+        raise json.JSONDecodeError("Empty response from AI", "", 0)
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text.strip())
+    return json.loads(cleaned)
+
+
 async def analyze_agreement(text: str) -> AnalysisResponse:
     settings = get_settings()
     client = genai.Client(api_key=settings.gemini_api_key)
@@ -34,11 +47,22 @@ async def analyze_agreement(text: str) -> AnalysisResponse:
 
     prompt = ANALYSIS_USER_PROMPT.format(agreement_text=text)
 
-    raw_text = await asyncio.to_thread(
-        _call_gemini, client, settings.gemini_model, prompt
-    )
-
-    parsed = json.loads(raw_text)
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        raw_text = await asyncio.to_thread(
+            _call_gemini, client, settings.gemini_model, prompt
+        )
+        try:
+            parsed = _parse_json(raw_text)
+            break
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(
+                "Gemini response parse failed (attempt %d/%d): %s — raw: %.500s",
+                attempt + 1, MAX_RETRIES, e, repr(raw_text),
+            )
+            last_error = e
+    else:
+        raise last_error
 
     for finding in parsed.get("findings", []):
         finding["id"] = str(uuid.uuid4())
