@@ -29,7 +29,7 @@ People routinely accept lengthy agreements without reading or understanding them
 
 **Frontend:** React, TypeScript, Vite, Tailwind CSS, React Router, Lucide React
 
-**Backend:** Python, FastAPI, PyMuPDF, Pydantic, Google Gemini API (google-genai SDK)
+**Backend:** Python, FastAPI, PyMuPDF, Pydantic, Google Gemini API (google-genai SDK, Gemini 3.8 Flash)
 
 **Deployment:** Vercel (frontend), Render (backend)
 
@@ -78,7 +78,7 @@ The app runs at `http://localhost:5173`.
 | Variable | Location | Description |
 |---|---|---|
 | `GEMINI_API_KEY` | Backend `.env` | Your Gemini API key (required) |
-| `GEMINI_MODEL` | Backend `.env` | Model name (default: `gemini-2.0-flash`) |
+| `GEMINI_MODEL` | Backend `.env` | Model name (default: `gemini-3.8-flash`) |
 | `ALLOWED_ORIGINS` | Backend `.env` | Comma-separated CORS origins |
 | `VITE_API_URL` | Frontend `.env` | Backend API URL (default: `http://localhost:8000`) |
 
