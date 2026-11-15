@@ -164,27 +164,26 @@ Tests cover three areas:
 ## Product Write-Up
 
 ### What problem does ClauseWise solve, and who is the user?
-
-Most people accept legal agreements without reading them. The consequences are real — unexpected auto-renewals, broad data collection rights, IP ownership transfers, one-sided termination clauses. The problem isn't laziness; it's that legal language is genuinely difficult to parse without training. ClauseWise targets students and young professionals encountering employment contracts, rental leases, and SaaS subscriptions for the first time — people with the most to lose from a bad clause and the least experience spotting one.
+Most people accept legal agreements without reading them. The consequences can be significant: unexpected auto-renewals, broad data collection rights, IP ownership transfers, or one-sided termination clauses.
+The problem is that legal language is difficult to understand without legal training. ClauseWise targets students and young professionals encountering employment contracts, rental agreements, and SaaS subscriptions — people who need to understand what they're agreeing to but may not know which clauses deserve attention.
 
 ### What were the most important product decisions, and why?
+1.	Evidence verification over raw summarization.
+A summary is only useful if users can trust it. LLMs can confidently generate inaccurate explanations or cite clauses that don't exist. ClauseWise independently checks AI-generated quotes against the original document using Levenshtein-distance fuzzy matching. Findings are labelled as verified, partially verified, or unverified, so users can distinguish source-backed information from uncertain results.
+This makes the analysis more transparent: users can see the original clause behind an explanation rather than having to take the AI's word for it.
 
-**Evidence verification over raw summarization.** Every AI tool can summarize text. The trust problem is that LLMs hallucinate — they'll confidently cite clauses that don't exist. ClauseWise independently verifies every AI-generated quote against the source document using Levenshtein-distance fuzzy matching. Verified findings get a green badge; unverified ones get a red warning. This is the core differentiator — it turns an AI summary from "probably right" into "here's the proof."
+2.	Structured categories over free-form summaries.
+A wall of text doesn't help someone who simply wants to know, "What does this cost me?" ClauseWise organises findings into seven categories — payment, auto-renewal, liability, termination, data privacy, IP, and other obligations — with attention levels that help users prioritise what to review.
 
-**Structured categories over free-form summary.** A wall of text doesn't help someone who just wants to know "what does this cost me?" Seven fixed categories (payment, auto-renewal, liability, termination, data privacy, IP, other) with three attention levels let users scan for what matters and skip what doesn't.
-
-**Stateless design, no accounts.** Adding user accounts would require a database, auth flows, and session management — scope that doesn't improve the core analysis. Documents aren't stored, which is also a privacy advantage when handling sensitive agreements.
+3.	Stateless design instead of user accounts.
+Accounts, authentication, and document history would add considerable implementation scope without improving the core analysis experience. ClauseWise therefore doesn't require sign-up or permanently store uploaded documents. This keeps the product simpler while also avoiding unnecessary retention of potentially sensitive agreements. Document history and saved analyses can be considered later if users need them.
 
 ### What was cut from scope, and what would you build next?
-
-Cut: URL scraping (unreliable), OCR for scanned PDFs (heavy dependency), version comparison (requires persistence), streaming progress (Gemini JSON mode doesn't support it). Next: version comparison — "what changed since I last reviewed this?" — is the most interesting feature and a genuine gap in every competitor.
+I cut URL scraping because of its reliability challenges, OCR for scanned PDFs because of the additional complexity, version comparison because it would require document persistence, and streaming progress to keep the initial implementation focused.
+Next, I'd build version comparison — showing users what changed between two versions of an agreement, which clauses were added or removed, and whether any obligations became more restrictive. This would extend ClauseWise from a one-time analysis tool into something useful throughout the agreement lifecycle.
 
 ### What broke or surprised during development?
+The Gemini model version was an unexpected issue: gemini-2.0-flash was retired for new API keys during development, so I had to switch to gemini-3.8-flash.
+I also encountered an issue with pydantic-settings: environment variables typed as list[str] were JSON-parsed by its dotenv source before my custom validator could process them. I resolved this by storing the value as a plain string and exposing a property that splits it on commas.
+Finally, the synchronous Gemini SDK was blocking FastAPI's asynchronous event loop and causing request timeouts. I fixed this by offloading the API call to a thread using asyncio.to_thread().
 
-The Gemini model version was a surprise — `gemini-2.0-flash` was retired for new API keys during development and had to be replaced with `gemini-3.8-flash`. Separately, `pydantic-settings` tried to JSON-parse the `ALLOWED_ORIGINS` env var when typed as `list[str]`, even with a `before` validator, because its DotEnvSettingsSource runs before Pydantic validation. The fix was storing it as a plain string with a property that splits on commas. Finally, the synchronous Gemini SDK was blocking FastAPI's async event loop, causing request timeouts — solved by offloading the call to a thread pool with `asyncio.to_thread()`.
-
----
-
-## License
-
-MIT
